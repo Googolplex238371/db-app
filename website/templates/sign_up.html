@@ -1,0 +1,45 @@
+{% extends "base.html" %} {% block title %}Sign Up{% endblock %} {% block
+content %}
+{%if user.is_authenticated%}
+<script>location.href = "/"</script>
+{%else%}
+<form method="POST">
+  <h3 align="center">Sign Up</h3>
+  <div class="form-group">
+    <label for="email">Email Address</label>
+    <input required
+      type="email"
+      class="form-control"
+      id="email"
+      name="email"
+      placeholder="Enter email"
+    />
+  </div>
+  <div class="form-group">
+    <label for="password1">Password</label>
+    <input required
+      type="password"
+      class="form-control"
+      id="password1"
+      name="password1"
+      placeholder="Enter password"
+    />
+  </div>
+  <div class="form-group">
+    <label for="password2">Password (Confirm)</label>
+    <input required
+      type="password"
+      class="form-control"
+      id="password2"
+      name="password2"
+      placeholder="Confirm password"
+    />
+  </div>
+  <input type = "checkbox" required>I agree to the <a href = "/t_c">Terms and Conditions</a>
+  <br />
+  <a href = "/login">Have an account?</a>
+  <br />
+  <button id = "submit" type="submit" class="btn btn-primary" style = "background-color:black;border:none">Submit</button>
+</form>
+{%endif%}
+{% endblock %}
