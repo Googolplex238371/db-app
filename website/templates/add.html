@@ -1,0 +1,112 @@
+{% extends "base.html" %} {% block title %}Add a database{% endblock %} {% block content
+%}
+<form method = "POST" id = "form">
+  <h3>Add a database</h3>
+  <p>Enter the database name</p>
+  <input class = "form-control" name = "name" id = "name" placeholder = "Enter the database name" required>
+  <br />
+  <div class = "inputs" id = "input1">
+  <p>Enter field number 1</p>
+  <input class= "form-control" name = "field1" id = "field1" placeholder = "Enter field number 1" required>
+    <input type = "radio" name = "primary_key" value = "field1" required/>
+    <label for = "primary_key">Primary Key</label>
+    <select name = "type1" id = "type1" class = "form-control">
+      <option value = "string">String</option>
+      <option value = "int">Integer</option>
+      <option value = "float">Float</option>
+      <option value = "bool">Boolean</option>
+      <option value = "date">Date (DD/MM/YYYY)</option>
+      <option value = "time">Time (HH:MM:SS)</option>
+    </select>
+    <button type = "button" onclick = "deleteRow(1)" class = "btn btn-primary delete-field" style = "background-color:red;border:none">Delete This Field</button>
+  </div>
+  <button type="submit" id = "submit" class="btn btn-primary mt-2" style="background-color:Black;border:none">Submit</button>
+</form>
+  <button onclick = "addRow()" type="submit"  class="btn btn-primary mt-2" style="background-color:Black;border:none">Add Row</button>
+<script>
+  function deleteRow(row){
+    if(document.getElementsByClassName("inputs").length == 1){
+      alert("You must have at least one field")
+      return null
+    }
+    for(i=row;i<document.getElementsByClassName("inputs").length;i++){
+      element = document.getElementById("input"+(i+1).toString())
+      element.id = "input"+i.toString()
+      element.children[0].innerText = "Enter field number "+i.toString()
+      element.children[1].setAttribute("placeholder","Enter field number "+i)
+      element.children[1].setAttribute("name","field"+i)
+      element.children[1].id = "field" + i
+      element.children[2].setAttribute("value","field"+i)
+      element.children[4].setAttribute("name","type"+i)
+      element.children[4].id = "type" + i
+      element.children[4].value = "string"
+      element.children[element.children.length-1].setAttribute("onclick","deleteRow("+i.toString()+")")
+    }
+    document.getElementById("form").removeChild(document.getElementById("input"+row.toString()))
+  }
+  function addRow(){
+    div = document.getElementsByClassName("inputs")[document.getElementsByClassName("inputs").length-1]
+    form = document.getElementById("form")
+    clone = div.cloneNode(true)
+    list = clone.children[0].innerText.split("")
+    text = (Number(list[list.length-1])+1).toString()
+    clone.id = "input"+text
+    clone.innerHTML = clone.innerHTML.split("<span")[0]
+    clone.children[1].value = ""
+    clone.children[1].setAttribute("placeholder","Enter field number "+text)
+    clone.children[1].setAttribute("name","field"+Number(text))
+    clone.children[1].id = "field" + Number(text)
+    clone.children[clone.children.length-1].setAttribute("onclick","deleteRow("+text+")")
+    clone.children[2].setAttribute("value","field"+text)
+    clone.children[4].setAttribute("name","type"+text)
+    clone.children[4].id = "type" + text
+    clone.children[4].value = "string"
+    list.splice(list.length-1,1)
+    text = list.join("") + text
+    clone.children[0].innerText = text
+    submit = document.getElementById("submit")
+    form.appendChild(clone)
+    form.insertBefore(clone,submit)
+  }
+  function delete_database(txt){
+    form = document.getElementById("form")
+    idx = Number(txt.split("Enter field number ")[1])+1
+    values = []
+    for(i=idx;idx<form.children.length-1;i++){
+      values.push(form.children[idx].children[1].value)
+      idx ++
+    }
+    console.log(values)
+    try{
+    form.removeChild(form.children[Number(txt.split("Enter field number ")[1])+2])
+    idx = 1
+    for(i=Number(text.split("Enter field number ")[1])+2;i<form.children.length-1;i++){
+      console.log(i)
+      text = (i-2).toString()
+      clone = form.children[i]
+      if (clone.innerHTML.split("<button").length==1)
+      {
+      list = clone.children[0].innerText.split("")
+      clone.children[1].setAttribute("placeholder","Enter field number "+text)
+      clone.children[1].setAttribute("name","field"+Number(text))
+      clone.children[1].setAttribute("value",values[idx])
+      clone.children[1].id = "field" + Number(text)
+      clone.children[2].setAttribute("value","field"+Number(text))
+      list.splice(list.length-1,1)
+      text = list.join("") + text
+      clone.children[0].innerText = text
+      console.log(text)
+      if(i!=3){
+
+      clone.innerHTML = clone.innerHTML.split("<span")[0]+'<span class = "btn btn-primary" style = "background-color:red;border:none" onClick = "delete_database(text)">Delete</button>'
+      }
+    }
+      idx ++
+  }
+  }
+  catch{
+    return null
+  }
+  }
+</script>
+{% endblock %}
