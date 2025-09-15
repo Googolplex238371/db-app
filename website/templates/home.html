@@ -1,0 +1,589 @@
+{% extends "base.html" %} 
+{% block title %}Home{% endblock %} 
+{% block content%}
+<style>
+  .main{
+    th, td {;
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+  }
+</style>
+<h1><i>Dashboard</i></h1>
+{%if data != []%}
+<h3>Databases</h3>
+<table class = "main">
+  <thead><th>Name</th><th>API Key</th><th>Table Preview</th><th>Last Updated (UTC)</th><th>Download CSV</th><th>Download as Excel</th><th>Storage</th></thead>
+<tbody>
+  <div id="modal" class="modal" style = "display:none">
+    <div class="modal-content" style = "height:auto">
+      <div class="modal-body">
+      <span class="close close-modal" target = "modal">&times;</span>
+        <p></p>
+      </div>
+    </div>
+  </div>
+{%for name,api,database,lastchange,columns,requests,types in data%}
+<tr><td>{{name}}<a href = "/edit-database/{{api}}"><i class="fa fa-pencil"></i></a></td><td>{{api}}</td><td><button class="btn btn-primary" style = "background-color:black;border:none" onClick = "createTable('{{database}}','{{columns}}')">See Data as Table</button></td><td>{{lastchange}}</td><td><button class="btn btn-primary" style = "background-color:black;border:none" onClick = "download('{{api}}','{{database}}','{{columns}}')">Download CSV</button></td><td><button class="btn btn-primary" style = "background-color:black;border:none" onClick = "download_excel('{{api}}','{{database}}','{{columns}}')">Download Excel</button></td><td><p class = "data" onClick = "convert(this,'{{database}}')"></p></td><td><button class = "btn btn-primary" style = "background-color:black;border:none" onClick = "view_requests_table('{{requests}}','{{api}}')">View All Requests</button></td><td><button class = "btn btn-primary" style = "background-color:red;border:none" onClick = "delete_database('{{api}}')">Delete</button></td></tr>
+{%endfor%}
+</tbody>
+</table>
+{%if queries != []%}
+<h3>Queries</h3>
+<table class = "main">
+  <thead><th>Name</th><th>API Key</th><th>Database Name</th><th>Preview Data</th><th>Download CSV</th><th>Download as Excel</th><th>Storage</th></thead>
+  <tbody>
+    {%for id,name,criteria,data,apikey,columns,dbname in queries%}
+    <tr><td>{{name}}<a href = "/edit-query/{{id}}"><i class="fa fa-pencil"></i></a></td><td>{{id}}</td><td>{{dbname}}</td><td><button class="btn btn-primary" style = "background-color:black;border:none" onClick = "createTable('{{data}}','{{columns}}')">See Data as Table</button></td><td><button class="btn btn-primary" style = "background-color:black;border:none" onClick = "download('{{id}}','{{data}}','{{columns}}')">Download CSV</button></td><td><button class="btn btn-primary" style = "background-color:black;border:none" onClick = "download_excel('{{id}}','{{data}}','{{columns}}')">Download Excel</button></td><td><p class = "data" onClick = "convert(this,'{{data}}')"></p></td><td><button class = "btn btn-primary" style = "background-color:red;border:none" onClick = "delete_query('{{id}}')">Delete</button></td></tr>
+    {%endfor%}
+  </tbody>
+</table>
+{%endif%}
+{%else%}
+<h6>No databases yet. Add one <a href = "/add-database">here</a></h6>
+{%endif%}
+<script>
+  all_types = {}
+  {%for name,api,database,lastchange,columns,requests,types in data%}
+  all_types["{{api}}"] = "{{types}}".split(",")
+  {%endfor%}
+  window.onload = function(){
+    elements = document.getElementsByClassName("data")
+    for(i=0;i<elements.length;i++){
+      elements[i].click()
+      elements[i].onclick = null_function
+    }
+  }
+  function null_function(){
+  }
+  function load(element,database){
+    convert(element,database)
+  }
+  let mode = 0;
+  function view_requests_bar(requests){
+    console.log("bar")
+    modal.children[0].children[0].children[1].innerHTML = ""
+    c = document.createElement("canvas")
+    c.id = "graph"
+    c.height = "100"
+    modal.children[0].children[0].children[1].appendChild(c)
+    graph = document.getElementById("graph")
+    rows = requests.split(";")
+    data = [0,0,0,0]
+    for(i=0; i< rows.length-1;i++){
+      if(rows[i].split(",")[1] == "read"){
+        data[0] +=1
+      }
+      if(rows[i].split(",")[1] == "write"){
+        data[1] +=1
+      }
+      if(rows[i].split(",")[1] == "update"){
+        data[2] +=1
+      }
+      if(rows[i].split(",")[1] == "delete"){
+        data[3] +=1
+      }
+    }
+    labels = ["Read","Write","Update","Delete"]
+    barColors = ["yellow", "green","blue","red"]
+    new Chart("graph", {
+  type: "bar",
+  data: {
+    labels: labels,
+    datasets: [{
+      backgroundColor: barColors,
+      data: data
+    }]},
+    options:{
+      legend: {display: false},
+    title: {
+      display: true,
+      text: "Requests Frequency By Type"
+    }
+  }
+});
+    div = document.createElement("div")
+    div.innerHTML +="<hr>"
+    button1 = document.createElement("button")
+    button1.className = "btn btn-primary"
+    button1.style = "background-color:black;border:none"
+    button1.innerText = "View Requests as Table"
+    button1.onclick = function (){view_requests_table(requests)}
+    button2 = document.createElement("button")
+    button2.className = "btn btn-primary"
+    button2.style = "background-color:grey;border:black"
+    button2.innerText = "View Requests By Type"
+    div.appendChild(button1)
+    div.appendChild(button2)
+    button3 = document.createElement("button")
+    button3.className = "btn btn-primary"
+    button3.style = "background-color:black;border:none"
+    button3.innerText = "View Requests Over Time"
+    button3.onclick = function (){view_requests_scatter(requests)}
+    div.appendChild(button3)
+    modal.children[0].children[0].children[1].appendChild(div)
+  }
+  function view_requests_scatter(requests){
+    rows = requests.split(";")
+    read = []
+    write = []
+    update = []
+    deletes = []
+    xLabels = []
+    split = rows[rows.length-2].split(",")[0]
+    raw_data = split.split(" ")[0]
+    multiplier = Math.floor(Number(raw_data.split("/")[2]+raw_data.split("/")[1]+raw_data.split("/")[0]+split.split(" ")[1].split(":").join("")))
+    split = rows[0].split(",")[0]
+    raw_data = split.split(" ")[0]
+    multiplier -= Math.floor(Number(raw_data.split("/")[2]+raw_data.split("/")[1]+raw_data.split("/")[0]+split.split(" ")[1].split(":").join("")))
+    multiplier = 100**Math.floor(Math.log(multiplier)/Math.log(100))
+    for(i=0; i< rows.length-1;i++){
+        split = rows[i].split(",")[0]
+        raw_data = split.split(" ")[0]
+        date = Math.floor(Number(raw_data.split("/")[2]+raw_data.split("/")[1]+raw_data.split("/")[0]+split.split(" ")[1].split(":").join(""))/multiplier)*multiplier
+        if(xLabels.indexOf(date) == -1){
+        xLabels.push(date)
+        if(rows[i].split(",")[1] == "read"){
+        read.push({x:date,y:1})
+        write.push({x:date,y:0})
+        update.push({x:date,y:0})
+        deletes.push({x:date,y:0})
+        }
+        else if (rows[i].split(",")[1] == "write"){
+          write.push({x:date,y:1})
+          read.push({x:date,y:0})
+          update.push({x:date,y:0})
+          deletes.push({x:date,y:0})
+        }
+      else if (rows[i].split(",")[1] == "update"){
+          update.push({x:date,y:1})
+          read.push({x:date,y:0})
+          write.push({x:date,y:0})
+          deletes.push({x:date,y:0})
+        }
+      else if (rows[i].split(",")[1] == "delete"){
+            update.push({x:date,y:0})
+            read.push({x:date,y:0})
+            write.push({x:date,y:0})
+            deletes.push({x:date,y:1})
+          }
+        }
+      else{
+        if(rows[i].split(",")[1] == "read"){
+          read[xLabels.indexOf(date)] = {x:date,y:read[xLabels.indexOf(date)].y+1}
+        }
+        if(rows[i].split(",")[1] == "write"){
+          write[xLabels.indexOf(date)] = {x:date,y:write[xLabels.indexOf(date)].y+1}
+        }
+        if(rows[i].split(",")[1] == "update"){
+          update[xLabels.indexOf(date)] = {x:date,y:update[xLabels.indexOf(date)].y+1}
+        }
+        if(rows[i].split(",")[1] == "delete"){
+          deletes[xLabels.indexOf(date)] = {x:date,y:deletes[xLabels.indexOf(date)].y+1}
+        }
+      }
+    }
+    canvas = document.createElement("canvas")
+    canvas.id = "graph"
+    canvas.height = "100"
+    dataset = []
+      dataset.push({
+        label:"read",
+        data:read,
+        borderColor:"yellow",
+        fill:"yellow"
+      })
+      dataset.push({
+        label:"write",
+        data:write,
+        borderColor:"green",
+        fill:"green"
+      })
+      dataset.push({
+        label:"update",
+        data:update,
+        borderColor:"blue",
+        fill:"blue"
+      })
+    dataset.push({
+      label:"delete",
+      data:deletes,
+      borderColor:"red",
+      fill:"red"
+    })
+    modal = document.getElementById("modal")
+    modal.children[0].children[0].children[1].innerText = ""
+    div = document.createElement("div")
+    div.innerHTML +="<hr>"
+    button1 = document.createElement("button")
+    button1.className = "btn btn-primary"
+    button1.style = "background-color:black;border:none"
+    button1.innerText = "View Requests as Table"
+    button1.onclick = function (){view_requests_table(requests)}
+    button2 = document.createElement("button")
+    button2.className = "btn btn-primary"
+    button2.style = "background-color:black;border:none"
+    button2.innerText = "View Requests By Type"
+    button2.onclick = function (){view_requests_bar(requests)}
+    div.appendChild(button1)
+    div.appendChild(button2)
+    button2 = document.createElement("button")
+    button2.className = "btn btn-primary"
+    button2.style = "background-color:grey;border:black"
+    button2.innerText = "View Requests Over Time"
+    div.appendChild(button2)
+    if(dataset != []){
+    modal.children[0].children[0].children[1].appendChild(canvas)
+      new Chart("graph", {
+  type: "line",
+  data: {
+    labels: xLabels,
+    datasets: dataset,
+  },
+  options: {
+    legend: {display: true},
+    title: {
+      display: true,
+      text: "Requests Frequency Over Time"
+    }
+  }
+});
+    }
+    else{
+      canvas = createTextNode("No requests provided")
+    modal.children[0].children[0].children[1].appendChild(canvas)
+    }
+    modal.children[0].children[0].children[1].appendChild(div)
+}
+  function view_requests_table(requests,api,start = 0){
+    try{
+      api_key = api_key
+    }
+    catch{
+      api_key = api
+    }
+    types = all_types[api_key]
+    if(requests != ""){
+    table = document.getElementsByClassName("main")[0].cloneNode(false)
+    table.className = "table table-bordered"
+    table.innerHTML +="<th>Request time (UTC)</th><th>Request type</th>"
+    list = requests.split(";")
+    list.pop(list.length-1)
+    length = list.length
+    limit = (screen.height-400)/50
+    if(length>limit){
+      length = Math.floor(limit)
+    }
+    max = start+length
+    if(max>= list.length){
+      max = list.length-1
+    }
+    for(i=start;i<max;i++){
+      cells = list[i].split(",")
+      row = table.insertRow(-1)
+      for(j=0;j<cells.length;j++){
+        cell = row.insertCell(-1)
+        cell.innerText = cells[j]
+      }
+      table.innerHTML+="</tr>"
+    }
+    button = document.createElement("button")
+    button.className = "btn btn-primary"
+    button.style = "background-color:black;border:none"
+    button.innerText = "Download data as Excel"
+    div = document.createElement("div")
+    div.appendChild(button)
+    div.appendChild(document.createElement("hr"))
+    button1 = document.createElement("button")
+    button1.className = "btn btn-primary" 
+    button1.style = "background-color:grey;border:black"
+    button1.innerText = "View Requests as Table"
+    button2 = document.createElement("button")
+    button2.className = "btn btn-primary"
+    button2.style = "background-color:black;border:none"
+    button2.innerText = "View Requests By Type"
+    button2.onclick = function (){mode=1;view_requests_bar(requests)}
+    button3 = document.createElement("button")
+    button3.className = "btn btn-primary"
+    button3.style = "background-color:black;border:none"
+    button3.innerText = "View Requests Over Time"
+    button3.onclick = function (){mode=1;view_requests_scatter(requests)}
+    div.appendChild(button1)
+    div.appendChild(button2)
+    div.appendChild(button3)
+    modal = document.getElementById("modal")
+    modal.children[0].children[0].children[1].innerText = ""
+    modal.children[0].children[0].children[1].appendChild(table)
+    button.addEventListener("click",function(){
+        table2excel = new Table2Excel()
+        table2excel.export(table,"requests-"+api_key)
+    })
+    controls = document.createElement("div")
+    if(start > 0){
+        prev = document.createElement("button")
+        prev.className = "btn btn-primary"
+        prev.style = "background-color:black;border:none"
+        prev.innerHTML = "<i class = 'fa fa-arrow-left'></i>"
+        prev.addEventListener("click",function(){
+          view_requests_table(requests,api,start-length)
+        })
+        controls.appendChild(prev)
+      }
+    if(list.length>length && start+length < list.length){
+      next = document.createElement("button")
+      next.className = "btn btn-primary"
+      next.style = "background-color:black;border:none"
+      next.innerHTML = "<i class = 'fa fa-arrow-right'></i>"
+      next.addEventListener("click",function(){
+        view_requests_table(requests,api,start+length)
+      })
+      controls.appendChild(next)
+    }
+    modal.children[0].children[0].children[1].appendChild(controls)
+    br = document.createElement("br")
+    modal.children[0].children[0].children[1].appendChild(br)
+    modal.children[0].children[0].children[1].appendChild(div)
+    html = modal.children[0].children[0].children[1].innerHTML
+    modal.style.display = "block"
+    var span = document.getElementsByClassName("close")[0];
+    span.onclick = function() {
+    modal.style.display = "none";
+    if (modal.children[0].children[0].children[1].innerHTML !=html && mode == 0){
+    modal.children[0].children[0].children[1].removeChild(table)
+    }
+    }
+    }
+    else{
+      table = document.createTextNode("No requests given")
+    modal = document.getElementById("modal")
+    modal.children[0].children[0].children[1].innerText = ""
+    modal.children[0].children[0].children[1].appendChild(table)
+    modal.style.display = "block"
+    var span = document.getElementsByClassName("close")[0];
+    span.onclick = function() {
+    modal.style.display = "none";
+    modal.children[0].children[0].children[1].removeChild(table)
+    }
+    }
+    }
+  function delete_database(api){
+    let text = "Are you sure you want to delete this database? This action cannot be undone";
+  if (confirm(text) == true) {
+    fetch("/delete-db", {
+      method:"POST",
+      body:JSON.stringify({api_key:api})
+    }).then(function(){
+      location.href = "/"
+    })
+  }
+  }
+  function delete_query(id){
+    let text = "Are you sure you want to delete this query? This action cannot be undone";
+  if (confirm(text) == true) {
+    fetch("/delete-query", {
+      method:"POST",
+      body:JSON.stringify({id:id})
+    }).then(function(){
+      location.href = "/"
+    })
+  }
+  }
+  function createTable(data,columns,start=0){
+    og_data = data
+    og_columns = columns
+    if(data!="[]" && data != ""){
+    split = data.split("")
+    column_split = columns.split("")
+    column_split.splice(column_split.length-1,1)
+    if(data.split("")[1] == "["){
+    split.splice(0,2)
+    }
+    else{
+      split.splice(0,1)
+    }
+    if(split[split.length-2] == "]"){
+    split.splice(split.length-2,2)
+    }
+    else{
+      split.splice(split.length-1,1)
+    }
+    columns = column_split.join("")
+    split = split.join("").split("],[")
+    split.splice(0,start)
+    data = columns + "\n" + split.join("\n")
+    length = split.length+1
+    limit = (screen.height-400)/50
+      if(length>limit){
+        length = Math.floor(limit)
+    }
+    table = document.getElementsByClassName("main")[0].cloneNode(false)
+    table.className = "table table-bordered"
+    list = data.split("\n")
+    for(i=0;i<length;i++){
+      cells = list[i].split(",")
+      row = table.insertRow(-1)
+      for(j=0;j<cells.length;j++){
+        cell = row.insertCell(-1)
+        cell.innerText = cells[j]
+      }
+      table.innerHTML+="</tr>"
+    }
+    }
+    else{
+      list = []
+      table = document.createTextNode("No data given")
+    }
+    modal = document.getElementById("modal")
+    modal.children[0].children[0].children[1].innerHTML = ""
+    modal.children[0].children[0].children[1].appendChild(table)
+    if(list.length>length && 1==0){
+      if(list.length == length+1){
+        modal.children[0].children[0].children[1].innerHTML+= "<p>1 more row</p>"
+      }
+      else{
+      modal.children[0].children[0].children[1].innerHTML+= "<p>"+(list.length-length).toString()+" more rows</p>"
+      }
+      
+    }
+    controls = document.createElement("div")
+    if(start > 0){
+        prev = document.createElement("button")
+        prev.className = "btn btn-primary"
+        prev.style = "background-color:black;border:none"
+        prev.innerHTML = "<i class = 'fa fa-arrow-left'></i>"
+        prev.addEventListener("click",function(){
+          createTable(og_data,og_columns,start-limit+1)
+        })
+        controls.appendChild(prev)
+      }
+    if(list.length>limit){
+      next = document.createElement("button")
+      next.className = "btn btn-primary"
+      next.style = "background-color:black;border:none"
+      next.innerHTML = "<i class = 'fa fa-arrow-right'></i>"
+      next.addEventListener("click",function(){
+        createTable(og_data,og_columns,start+limit-1)
+      })
+      controls.appendChild(next)
+    }
+    modal.children[0].children[0].children[1].appendChild(controls)
+    modal.style.display = "block"
+    var span = document.getElementsByClassName("close-modal")[0];
+    span.onclick = function() {
+    modal.style.display = "none";
+  }
+  }
+  function unpack(data,columns){
+    console.log(data)
+    if(data!="[]" && data != ""){
+    split = data.split("")
+    column_split = columns.split("")
+    split.splice(0)
+    split.splice(split.length-1)
+    split.splice(split.length-1)
+    columns = column_split.join("")
+    split = split.join("").split("],[")
+    data = columns + "\n" + split.join("\n")
+    }
+    else{
+      data = "No data given"
+    }
+    modal = document.getElementById("modal")
+    modal.children[0].children[0].children[1].innerText = data
+    modal.style.display = "block"
+    var span = document.getElementsByClassName("close-modal")[0];
+span.onclick = function() {
+  modal.style.display = "none";
+}
+  }
+  function download(api,data,columns){
+    console.log(data)
+    if(data!="[]" && data != ""){
+    split = data.split("")
+    column_split = columns.split("")
+    split.splice(0,2)
+    split.splice(split.length-2,2)
+    columns = column_split.join("")
+    split = split.join("").split("],[")
+    data = columns + "\n" + split.join("\n")
+    var hiddenElement = document.createElement('a');  
+    hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(data);  
+    hiddenElement.target = '_blank';  
+    hiddenElement.download = api+'.csv';  
+    hiddenElement.click();  
+    }
+  }
+  function download_excel(api_key, data, columns) {
+    types = all_types[api_key]
+    split = data.split("")
+    column_split = columns.split("")
+    column_split.splice(column_split.length-1,1)
+    if(data.split("")[1] == "["){
+    split.splice(0,2)
+    }
+    else{
+      split.splice(0,1)
+    }
+    if(split[split.length-2] == "]"){
+    split.splice(split.length-2,2)
+    }
+    else{
+      split.splice(split.length-1,1)
+    }
+    columns = column_split.join("")
+    split = split.join("").split("],[")
+    data = columns + "\n" + split.join("\n")
+    length = split.length+1
+    table = document.getElementsByClassName("main")[0].cloneNode(false)
+    table.className = "table table-bordered"
+    list = data.split("\n")
+    for(i=0;i<list.length;i++){
+      cells = list[i].split(",")
+      row = table.insertRow(-1)
+      for(j=0;j<cells.length;j++){
+        cell = row.insertCell(-1)
+        if(types[j] == "bool"){
+          cells[j] = cells[j].charAt(0).toUpperCase() + cells[j].slice(1)
+        }
+        cell.innerText = cells[j].toString()
+      }
+      table.innerHTML+="</tr>"
+    }
+    console.log(cell)
+    console.log(table.outerHTML)
+    if(data!="[]" && data != ""){
+      table2excel = new Table2Excel()
+      table2excel.export(table,api_key)
+    }
+    else{
+      alert("No data given")
+    }
+  }
+
+function convert(element,input) {
+  output = ""
+  for (var i = 0; i < input.length; i++) {
+      output += input[i].charCodeAt(0).toString(2) + " ";
+  }
+  value = output.length-output.split(" ").length
+  suffix = ""
+  if(value < 1024*8){
+    multiplier = 1/8
+    suffix = "B"
+  }
+  else if(value < 1024*8*1024){
+    multiplier = 1/8192
+    suffix = "KB"
+  }
+  else if(value < 1024*1024*1024*8){
+    multiplier = 1/8192/1024
+    suffix = "MB"
+  }
+  else{
+    multiplier = 1/8192/1024/1024
+    suffix = "GB"
+  }
+  element.innerHTML = "\n"+(Math.round(multiplier*(output.length - output.split(" ").length-13)*1000)/1000).toString()+" "+suffix
+}
+</script>
+{% endblock %}
