@@ -1,0 +1,143 @@
+{%extends 'base.html'%}
+{%block title%}Edit query{%endblock%}
+{%block content%}
+<h3>Add a query</h3>
+<form method = "POST">
+<label for = "/name">Enter the query name</label>
+  <input name = "/name" class = "form-control" placeholder = "Enter the query name" value = "{{name}}" required>
+<div id = "criteria"></div>
+<button type = "button" style = "background-color:black;border:none" class = "btn btn-primary" onclick = "check_form()">Submit</button>
+</form>
+<script>
+  criteria = {{criteria | safe}}
+  let all_columns = {}
+  let all_types = {}
+  all_columns["{{database.name}}"] = "{{database.columns}}".split(",")
+  all_types["{{database.name}}"] = "{{database.types}}".split(",")
+  
+  window.onload = function(){
+    update("{{database.name}}")
+    for(i=0;i<criteria.length;i++){
+      if(criteria[i] == ""){
+        continue
+      }
+      index = Number(criteria[i].split(':')[0])
+      console.log(index,criteria[i])
+      criterion = criteria[i].split(":")[1]
+      value = criteria[i].split(":")[2]
+      console.log(value,Number(value))
+      select = document.getElementsByName(all_columns["{{database.name}}"][index])[0]
+      select.value = criterion
+      console.log((all_columns["{{database.name}}"][index]))
+      update_criterion(criterion,all_columns["{{database.name}}"][index],all_types["{{database.name}}"][index])
+      if(all_types["{{database.name}}"][index] == "int" || all_types["{{database.name}}"][index] == "float"){
+        document.getElementsByName("criterion-"+all_columns["{{database.name}}"][index])[0].value = Number(value)
+      }
+      else{
+        document.getElementsByName("criterion-"+all_columns["{{database.name}}"][index])[0].value = value
+      }
+    }
+  }
+  function check_form(){
+    for(i=0;i<document.getElementsByTagName("select").length;i++){
+      if(document.getElementsByTagName("select")[i].value != "none"){
+        document.getElementsByTagName("form")[0].submit()
+        return null
+      }
+    }
+    alert("You must select at least one criterion")
+  }
+  function update(value){
+    columns = all_columns[value]
+    types = all_types[value]
+    if(columns.indexOf("") != -1){
+      columns.splice(columns.indexOf(""),1)
+      types.splice(types.indexOf(""),1)
+    }
+    document.getElementById("criteria").innerHTML = ""
+    for(i=0;i<columns.length;i++){
+      div = document.createElement("div")
+      if(types[i] == "string"){
+        div.innerHTML += '<p>'+columns[i]+'</p><select onchange = "update_criterion(this.value,'+"'"+columns[i]+"',"+"'"+types[i]+"'"+')" class = "form-control" name = "'+columns[i]+'"><option name = "none" value = "none">---</option><option name = "startswith" value = "startswith">Starts with</option><option name = "endswith" value = "endswith">Ends with</option><option name = "contains" value = "contains">Contains __</option><option name = "equal" value = "equal">Is equal to __</option><option name = "nequal" value = "nequal">Is not equal to __</option></select><div id = "'+columns[i]+'"></div>'
+      }
+      if(types[i] == "int" || types[i] == "float"){
+        div.innerHTML += '<p>'+columns[i]+'</p><select onchange = "update_criterion(this.value,'+"'"+columns[i]+"',"+"'"+types[i]+"'"+')" class = "form-control" name = "'+columns[i]+'"><option name = "none" value = "none">---</option><option name = "equal" value = "equal">Is equal to __</option><option name = "nequal" value = "nequal">Is not equal to __</option><option name = "greater" value = "greater">Is greater than __</option><option name = "less" value = "less">Is less than __</option></select><div id = "'+columns[i]+'"></div>'
+      }
+      if(types[i] == "date"){
+        div.innerHTML += '<p>'+columns[i]+'</p><select onchange = "update_criterion(this.value,'+"'"+columns[i]+"',"+"'"+types[i]+"'"+')" class = "form-control" name = "'+columns[i]+'"><option name = "none" value = "none">---</option><option name = "equal" value = "equal">Is on </option><option name = "nequal" value = "nequal">Is not on</option><option name = "greater" value = "greater">Is after</option><option name = "less" value = "less">Is before</option></select><div id = "'+columns[i]+'"></div>'
+      }
+      if(types[i] == "time"){
+        div.innerHTML += '<p>'+columns[i]+'</p><select onchange = "update_criterion(this.value,'+"'"+columns[i]+"',"+"'"+types[i]+"'"+')" class = "form-control" name = "'+columns[i]+'"><option name = "none" value = "none">---</option><option name = "equal" value = "equal">Is at </option><option name = "nequal" value = "nequal">Is not at</option><option name = "greater" value = "greater">Is after</option><option name = "less" value = "less">Is before</option></select><div id = "'+columns[i]+'"></div>'
+      }
+      if(types[i] == "bool"){
+        div.innerHTML += '<p>'+columns[i]+'</p><select onchange = "update_criterion(this.value,'+"'"+columns[i]+"',"+"'"+types[i]+"'"+')" class = "form-control" name = "'+columns[i]+'"><option name = "none" value = "none">---</option><option name = "equal" value = "equal">Is </option></select><div id = "'+columns[i]+'"></div>'
+      }
+
+      document.getElementById("criteria").appendChild(div)
+    }
+  }
+  function update_criterion(value,name,type){
+    document.getElementById(name).innerHTML = ""
+    if(value == "none"){
+      return null
+    }
+    div = document.createElement("div")
+    if(type == "string"){
+      input = document.createElement("input")
+      input.className = "form-control"
+      input.name = "criterion-"+name
+      input.required = true
+      div.appendChild(input)
+    }
+    if(type == "int"){
+      input = document.createElement("input")
+      input.type = "number"
+      input.className = "form-control"
+      input.name = "criterion-"+name
+      input.required = true
+      div.appendChild(input)
+    }
+    if(type == "float"){
+      input = document.createElement("input")
+      input.type = "number"
+      input.step = "0.01"
+      input.className = "form-control"
+      input.name = "criterion-"+name
+      input.required = true
+      div.appendChild(input)
+    }
+    if(type == "date"){
+      input = document.createElement("input")
+      input.type = "date"
+      input.className = "form-control"
+      input.name = "criterion-"+name
+      input.required = true
+      div.appendChild(input)
+    }
+    if(type == "time"){
+      input = document.createElement("input")
+      input.type = "time"
+      input.className = "form-control"
+      input.name = "criterion-"+name
+      input.required = true
+      div.appendChild(input)
+    }
+    if(type == "bool"){
+      input = document.createElement("select")
+      input.className = "form-control"
+      input.name = "criterion-"+name
+      input.required = true
+      option1 = document.createElement("option")
+      option1.value = "True"
+      option1.innerText = "True"
+      option2 = document.createElement("option")
+      option2.value = "False"
+      option2.innerText = "False"
+      input.appendChild(option1)
+      input.appendChild(option2)
+      div.appendChild(input)
+    }
+    document.getElementById(name).appendChild(div)
+  }
+</script>
+{%endblock%}
