@@ -1,0 +1,106 @@
+{%extends 'base.html'%}
+{%block title%}
+DBapp by Lumina - Tutorial
+{%endblock%}
+<style>
+.code{
+    background: #cccccc;
+    border: 1px solid #ddd;
+    border-left: 3px solid #f36d33;
+    color: #666;
+    page-break-inside: avoid;
+    font-family: monospace;
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 1.6em;
+    max-width: 100%;
+    overflow: auto;
+    padding: 1em 1.5em;
+    display: block;
+    word-wrap: break-word;
+}
+code{
+  color:black
+}
+</style>
+{%block content%}
+<h1>How to use DBapp</h1>
+<h3>Types of requests</h3>
+<ul>
+  <li>Read requests - Reads the data stored in and properties of the database registered with the provided API key</li>
+  <li>Write requests - Writes new data to the database registered with the provided API key</li>
+  <li>Update requests - Updates the record stored in the database with a certain index registered with the provided API key</li>
+</ul>
+<script>
+  function copy(item){
+    text = item.children[0].innerText
+  navigator.clipboard.writeText(text);
+  }
+</script>
+<h3>Read requests</h3>
+<p>Read requests require the following parameters:
+<ul>
+  <li><p><code style = "color:black">api_key</code>, states the API key of the database</p></li>
+</ul>
+<h5>Example Code</h5>
+<div class="jumbotron-fluid" style = "background-color:#eeeeee">
+<pre>
+  <code id = "read"><child>fetch("https://d6162c76-f7b4-4996-b280-f5b2778c4f62-00-2f6j0yvvlw6tq.sisko.replit.dev/access-data", {
+  method: "POST",//GET requests are not accepted
+body: JSON.stringify({api_key:"YOUR_API_KEY", request: "read"}) //replace 'YOUR_API_KEY' with your api key
+  }).then((response)=>response.json( //converts response to json
+  )).then((data)=>console.log(data.data))</child></code>
+</pre>
+</div>
+<button onclick=copy(document.getElementById("read")) class="btn btn-primary" style = "background-color:black;border:none">Copy</button>
+<h5> Response </h5>
+<p>The response will be in the form of a javascript object with the following parameters:</p>
+<ul>
+  <li><p><code style = "color:black">data</code> - returns the data stored in the database registered in the API key provided</p></li>
+   <li><p><code style = "color:black">last_updated</code> - returns the time the database registered in the API key was last modified</p></li>
+   <li><p><code style = "color:black">records</code> - returns the number of records stored in the database registered in the API key provided</p></li>
+</ul>
+<h3>Write requests</h3>
+<p>Write requests require the following parameters:
+<ul>
+  <li><p><code style = "color:black">api_key</code>, states the API key of the database</p></li>
+  <li><p><code style = "color:black">data</code>, provides the database with the new record's data</p></li>
+</ul>
+<h5>Example Code</h5>
+<div class="jumbotron-fluid" style = "background-color:#eeeeee">
+<pre>
+ <code id = "write"><child> fetch("https://d6162c76-f7b4-4996-b280-f5b2778c4f62-00-2f6j0yvvlw6tq.sisko.replit.dev/access-data", {
+  method: "POST",//GET requests are not accepted
+body: JSON.stringify({api_key:"YOUR_API_KEY", request: "write",data:["ENTER DATA HERE"]}) //replace 'YOUR_API_KEY' with your api key and replace "ENTER DATA HERE" with your data
+  }).then((response)=>response.json( //converts response to json
+  )).then((data)=>console.log(data.data))</child></code>
+</pre>
+</div>
+<button onclick=copy(document.getElementById("write")) class="btn btn-primary" style = "background-color:black;border:none">Copy</button>
+<h5> Response </h5>
+<p>The response will be in the form of a javascript object with the following parameters:</p>
+<ul>
+  <li><p><code style = "color:black">data</code> - returns the new data stored in the database registered in the API key provided</p></li>
+</ul>
+<h3>Update requests</h3>
+<p>Update requests require the following parameters:
+<ul>
+  <li><p><code style = "color:black">api_key</code>, states the API key of the database</p></li>
+  <li><p><code style = "color:black">index</code>, states the index (in the form of a string) of the record that you wish to update</p></li>
+  <li><p><code style = "color:black">data</code>, provides the database with the new record data</p></li>
+</ul>
+<h5>Example Code</h5>
+<button onclick=copy(document.getElementById("update")) class="btn btn-primary" style = "background-color:black;border:none">Copy</button>
+  <div class="jumbotron-fluid" style = "background-color:#eeeeee">
+    <pre><code id = "update"><child>  fetch("https://d6162c76-f7b4-4996-b280-f5b2778c4f62-00-2f6j0yvvlw6tq.sisko.replit.dev/access-data", {
+  method: "POST",//GET requests are not accepted
+body: JSON.stringify({api_key:"YOUR_API_KEY", request: "update",index:"INDEX",data:["ENTER DATA HERE"]}) //replace 'YOUR_API_KEY' with your api key, replace "ENTER DATA HERE" with your data and replace "INDEX" with your data's index
+  }).then((response)=>response.json( //converts response to json
+  )).then((data)=>console.log(data.data))</child></code>
+</span></pre></div>
+<h5> Response </h5>
+<p>The response will be in the form of a javascript object with the following parameters:</p>
+<ul>
+  <li><p><code style = "color:black">data</code> - returns the new data stored in the database registered in the API key provided</p></li>
+</ul>
+{%endblock%}
