@@ -1,0 +1,45 @@
+{% extends "base.html" %} {% block title %}Verify your account{% endblock %} {% block content
+%}
+{%if not user.is_authenticated%}
+<h4>Enter your email address.</h4>
+<form method = "POST">
+  <div class="form-group">
+    <input
+      class="form-control"
+      id="email"
+      name="email"
+      type = "email"
+      placeholder="Enter your email address"
+      required
+    />
+  </div>
+  <button type="submit" id = "submit" class="btn btn-primary" style = "background-color:black;border:none;display:none">Verify account</button>
+</form>
+  <button onclick = "email()" class="btn btn-primary" style = "background-color:black;border:none">Submit</button>
+<script>
+  function process(data){
+    if(data.exists == "y"){
+      button = document.getElementById("submit")
+      button.click()
+    }
+    else{
+      alert("There was an error. Please try again later.")
+    }
+    }
+  function email(){
+    try{
+      fetch("/verify-forgot", {
+      method:"POST",
+      body:JSON.stringify({email:document.getElementById("email").value})
+    }).then((response)=>response.json()).then((data)=>process(data))}
+  catch{
+    alert("An error occured")
+  }
+  }
+</script>
+{%else%}
+<script>
+  location.href = "/"
+</script>
+{%endif%}
+{%endblock%}
