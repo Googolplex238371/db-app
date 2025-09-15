@@ -1,0 +1,18 @@
+{% extends "base.html" %} {% block title %}Edit database{% endblock %} {% block content
+%}
+<form method = "POST" id = "form">
+  <h3>Edit database</h3>
+  <p>Enter the database name</p>
+  <input class = "form-control" name = "name" id = "name" placeholder = "Enter the database name" value = "{{db.name}}" required>
+  <br />
+  {%for idx,column in columns%}
+  {%if column != ""%}
+  <div class = "inputs" id = "input{{idx}}">
+  <p>Enter field number {{idx}}'s name </p>
+  <input class= "form-control" name = "field{{idx}}" id = "field{{idx}}" placeholder = "Enter field number {{idx}}" value = "{{column}}"required>
+  </div>
+  {%endif%}
+  {%endfor%}
+  <button type="submit" id = "submit" class="btn btn-primary mt-2" style="background-color:Black;border:none">Submit</button>
+</form>
+{% endblock %}
