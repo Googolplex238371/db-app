@@ -1,0 +1,42 @@
+{% extends "base.html" %} {% block title %}Verify your account{% endblock %} {% block content
+%}
+{%if not user.is_authenticated%}
+<h4>Enter the OTP sent to your email. Check your spam folder.</h4>
+<form method = "POST">
+  <div class="form-group">
+    <input
+      class="form-control"
+      id="otp"
+      name="otp"
+      placeholder="Enter the OTP sent to your email"
+      required
+    />
+  </div>
+  <div class="form-group">
+    <input
+      class="form-control"
+      id="password1"
+      name="password1"
+      type="password"
+      placeholder="Enter your new password"
+      required
+    />
+  </div>
+  <div class="form-group">
+    <input
+      class="form-control"
+      id="password2"
+      name="password2"
+      type = "password"
+      placeholder="Enter your new password again"
+      required
+    />
+  </div>
+  <button type="submit" class="btn btn-primary" style = "background-color:black;border:none">Verify account</button>
+</form>
+{%else%}
+<script>
+  location.href = "/"
+</script>
+{%endif%}
+{%endblock%}
